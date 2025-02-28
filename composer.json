@@ -1,0 +1,13 @@
+{
+    "name": "maheshbro/research-php", 
+    "type": "project",
+    "authors": [
+        {
+            "name": "MaheshBroDev", 
+            "email": "maheshkcot95@gmail.com"
+        }
+    ],
+    "require": {
+        "ext-pdo": "*"
+    }
+}

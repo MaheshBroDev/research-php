@@ -1,0 +1,8 @@
+vendor/
+node_modules/
+.git/
+.idea/
+.vscode/
+composer.lock
+Dockerfile
+.dockerignore
