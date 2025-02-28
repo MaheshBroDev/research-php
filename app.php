@@ -20,7 +20,7 @@ $dsn = sprintf(
 );
 $username = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASS') ?: '';
-$password = "";
+// $password = "";
 $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
 
 try {
