@@ -12,8 +12,14 @@ if (file_exists($autoloaderPath)) {
 }
 
 
-$dsn = "mysql:host=localhost;dbname=research_php;charset=utf8mb4";
-$username = "root";
+$dsn = sprintf(
+    "mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4",
+    getenv('DB_HOST') ?: 'localhost',
+    getenv('DB_PORT') ?: '3306',
+    getenv('DB_NAME') ?: 'research_php'
+);
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') ?: '';
 $password = "";
 $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
 
