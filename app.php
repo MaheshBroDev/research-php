@@ -27,7 +27,7 @@ try {
     $pdo = new PDO($dsn, $username, $password, $options);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => "Database connection failed"]);
+    echo json_encode(["error" => "Database connection failed","error_message" => $e->getMessage()]);
     exit;
 }
 
