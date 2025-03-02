@@ -73,6 +73,68 @@ function authMiddleware() {
     return $stmt->fetch(PDO::FETCH_ASSOC)['username'];
 }
 
+// Sorting functions
+function bubbleSort(array $arr): array {
+    $size = count($arr);
+    for ($i = 0; $i < $size - 1; $i++) {
+        for ($j = 0; $j < $size - $i - 1; $j++) {
+            if ($arr[$j] > $arr[$j + 1]) {
+                // Swap elements
+                $temp = $arr[$j];
+                $arr[$j] = $arr[$j + 1];
+                $arr[$j + 1] = $temp;
+            }
+        }
+    }
+    return $arr;
+}
+
+function quickSort(array $arr): array {
+    if (count($arr) < 2) {
+        return $arr;
+    }
+
+    $pivot = $arr[0];
+    $left = $right = [];
+
+    for ($i = 1; $i < count($arr); $i++) {
+        if ($arr[$i] < $pivot) {
+            $left[] = $arr[$i];
+        } else {
+            $right[] = $arr[$i];
+        }
+    }
+
+    return array_merge(quickSort($left), [$pivot], quickSort($right));
+}
+
+function binaryInsertionSort(array $arr): array {
+    $count = count($arr);
+    for ($i = 1; $i < $count; $i++) {
+        $key = $arr[$i];
+        $left = 0;
+        $right = $i - 1;
+
+        // Binary search to find the correct position
+        while ($left <= $right) {
+            $mid = floor(($left + $right) / 2);
+            if ($key < $arr[$mid]) {
+                $right = $mid - 1;
+            } else {
+                $left = $mid + 1;
+            }
+        }
+
+        // Shift elements to make space
+        for ($j = $i - 1; $j >= $left; $j--) {
+            $arr[$j + 1] = $arr[$j];
+        }
+
+        $arr[$left] = $key;
+    }
+    return $arr;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $startTime = microtime(true);
@@ -143,6 +205,63 @@ switch ($path) {
                 header('Content-Type: text/csv');
                 readfile('performance_metrics_php.csv');
             }
+        }
+        break;
+    case '/sort':
+        if ($method === 'POST') {
+            authMiddleware();
+            $input = json_decode(file_get_contents('php://input'), true);
+            $list = $input['list'];
+
+            // Bubble Sort
+            $startTimeBubble = microtime(true);
+            $memoryUsageBeforeBubble = memory_get_usage();
+            $cpuUsageBeforeBubble = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+            $sortedBubble = bubbleSort($list);
+            $endTimeBubble = microtime(true);
+            $memoryUsageAfterBubble = memory_get_usage();
+            $cpuUsageAfterBubble = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+
+            // Quick Sort
+            $startTimeQuick = microtime(true);
+            $memoryUsageBeforeQuick = memory_get_usage();
+            $cpuUsageBeforeQuick = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+            $sortedQuick = quickSort($list);
+            $endTimeQuick = microtime(true);
+            $memoryUsageAfterQuick = memory_get_usage();
+            $cpuUsageAfterQuick = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+
+             // Binary Insertion Sort
+             $startTimeBinary = microtime(true);
+             $memoryUsageBeforeBinary = memory_get_usage();
+             $cpuUsageBeforeBinary = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+             $sortedBinary = binaryInsertionSort($list);
+             $endTimeBinary = microtime(true);
+             $memoryUsageAfterBinary = memory_get_usage();
+             $cpuUsageAfterBinary = function_exists('sys_getloadavg') ? sys_getloadavg()[0] * 100 : 0;
+
+            $results = [
+                'bubbleSort' => [
+                    'sortedList' => $sortedBubble,
+                    'elapsedTime' => round(($endTimeBubble - $startTimeBubble) * 1000, 2) . ' ms',
+                    'memoryUsage' => round(($memoryUsageAfterBubble - $memoryUsageBeforeBubble) / 1024 / 1024, 2) . ' MB',
+                    'cpuUsage' => round($cpuUsageAfterBubble - $cpuUsageBeforeBubble, 2) . '%'
+                ],
+                'quickSort' => [
+                    'sortedList' => $sortedQuick,
+                    'elapsedTime' => round(($endTimeQuick - $startTimeQuick) * 1000, 2) . ' ms',
+                    'memoryUsage' => round(($memoryUsageAfterQuick - $memoryUsageBeforeQuick) / 1024 / 1024, 2) . ' MB',
+                    'cpuUsage' => round($cpuUsageAfterQuick - $cpuUsageBeforeQuick, 2) . '%'
+                ],
+                'binarySort' => [
+                    'sortedList' => $sortedBinary,
+                    'elapsedTime' => round(($endTimeBinary - $startTimeBinary) * 1000, 2) . ' ms',
+                    'memoryUsage' => round(($memoryUsageAfterBinary - $memoryUsageBeforeBinary) / 1024 / 1024, 2) . ' MB',
+                    'cpuUsage' => round($cpuUsageAfterBinary - $cpuUsageBeforeBinary, 2) . '%'
+                ]
+            ];
+
+            echo json_encode($results);
         }
         break;
     default:
