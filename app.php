@@ -69,6 +69,42 @@ function logPerformanceMetrics($endpoint, $startTime) {
     file_put_contents($jsonFile, json_encode($existingData, JSON_PRETTY_PRINT));
 }
 
+// Function to log Docker stats
+function logDockerStats($endpoint) {
+    $timestamp = date('Y-m-d H:i:s');
+    $dockerStatsFile = 'docker_metrics_php.json';
+
+    // Get CPU usage
+    $cpuUsage = 0;
+    $cmdCpu = "top -bn1 | grep Cpu | awk '{printf \"%.1f\", $2+$4}'";
+    @exec($cmdCpu, $outputCpu);
+    if (isset($outputCpu[0])) {
+        $cpuUsage = (float)$outputCpu[0];
+    }
+
+    // Get memory usage
+    $memoryUsage = 0;
+    $cmdMem = "free | grep Mem | awk '{print $3/$2 * 100.0}'";
+    @exec($cmdMem, $outputMem);
+    if (isset($outputMem[0])) {
+        $memoryUsage = (float)$outputMem[0];
+    }
+
+    $data = [
+        'timestamp' => $timestamp,
+        'endpoint' => $endpoint,
+        'cpuUsage' => $cpuUsage,
+        'memoryUsage' => $memoryUsage
+    ];
+
+    $existingData = [];
+    if (file_exists($dockerStatsFile)) {
+        $existingData = json_decode(file_get_contents($dockerStatsFile), true);
+    }
+    $existingData[] = $data;
+    file_put_contents($dockerStatsFile, json_encode($existingData, JSON_PRETTY_PRINT));
+}
+
 function authMiddleware() {
     global $pdo;
     $headers = getallheaders();
@@ -213,12 +249,23 @@ switch ($path) {
         break;
     case '/metrics':
         if ($method === 'GET') {
-            if (!file_exists('performance_metrics_php.csv')) {
+            if (!file_exists('performance_metrics_php.json')) {
                 http_response_code(404);
                 echo json_encode(["error" => "No performance metrics available"]);
             } else {
                 header('Content-Type: text/csv');
-                readfile('performance_metrics_php.csv');
+                readfile('performance_metrics_php.json');
+            }
+        }
+        break;
+    case '/docker_metrics':
+        if ($method === 'GET') {
+            if (!file_exists('docker_metrics_php.json')) {
+                http_response_code(404);
+                echo json_encode(["error" => "No docker metrics available"]);
+            } else {
+                header('Content-Type: application/json');
+                echo file_get_contents('docker_metrics_php.json');
             }
         }
         break;
@@ -285,3 +332,4 @@ switch ($path) {
 }
 
 logPerformanceMetrics($path, $startTime);
+logDockerStats($path);
