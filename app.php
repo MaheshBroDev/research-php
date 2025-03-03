@@ -49,9 +49,24 @@ function logPerformanceMetrics($endpoint, $startTime) {
     
     $timestamp = date('Y-m-d H:i:s');
     
-    $csvFile = 'performance_metrics_php.csv';
-    $data = "$timestamp,$endpoint,$memoryUsage,$elapsedTime,$cpuUsage\n";
-    file_put_contents($csvFile, $data, FILE_APPEND);
+    $jsonFile = 'performance_metrics_php.json';
+    $data = [
+        'timestamp' => $timestamp,
+        'endpoint' => $endpoint,
+        'rss' => $memoryUsage,
+        'heapTotal' => memory_get_usage(true),
+        'heapUsed' => $memoryUsage,
+        'elapsedTime' => $elapsedTime,
+        'cpuUsage' => $cpuUsage,
+        'memoryUsage' => round($memoryUsage / 1024 / 1024, 2) . ' MB'
+    ];
+    
+    $existingData = [];
+    if (file_exists($jsonFile)) {
+        $existingData = json_decode(file_get_contents($jsonFile), true);
+    }
+    $existingData[] = $data;
+    file_put_contents($jsonFile, json_encode($existingData, JSON_PRETTY_PRINT));
 }
 
 function authMiddleware() {
