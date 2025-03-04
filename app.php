@@ -326,6 +326,10 @@ switch ($path) {
             echo json_encode($results);
         }
         break;
+    case preg_match('/\/loaderio-([a-zA-Z0-9]{32})\.txt/', $path, $matches) ? true : false:
+        header('Content-Type: text/plain');
+        echo 'loaderio-' . $matches[1];
+        break;
     default:
         http_response_code(404);
         echo json_encode(["error" => "Not Found"]);
