@@ -186,6 +186,90 @@ function binaryInsertionSort(array $arr): array {
     return $arr;
 }
 
+// Update Item (Authenticated)
+function updateItem($db) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed"]);
+        return;
+    }
+
+    parse_str(file_get_contents("php://input"), $put_vars);
+    $id = $put_vars['id'] ?? null;
+    $name = $put_vars['name'] ?? null;
+    $value = $put_vars['value'] ?? null;
+
+    if (!$id || !$name || !$value) {
+        http_response_code(400);
+        echo json_encode(["message" => "Missing parameters"]);
+        return;
+    }
+
+    $stmt = $db->prepare("UPDATE items SET name = ?, value = ? WHERE id = ?");
+    if ($stmt->execute([$name, $value, $id])) {
+        http_response_code(200);
+        echo json_encode(["message" => "Item updated"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["message" => "Error updating item"]);
+    }
+}
+
+// Delete Item (Authenticated)
+function deleteItem($db) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed"]);
+        return;
+    }
+
+    parse_str(file_get_contents("php://input"), $delete_vars);
+    $id = $delete_vars['id'] ?? null;
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(["message" => "Missing id parameter"]);
+        return;
+    }
+
+    $stmt = $db->prepare("DELETE FROM items WHERE id = ?");
+    if ($stmt->execute([$id])) {
+        http_response_code(200);
+        echo json_encode(["message" => "Item deleted"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["message" => "Error deleting item"]);
+    }
+}
+
+// Delete Last Item (Authenticated)
+function deleteLastItem($db) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed"]);
+        return;
+    }
+
+    $stmt = $db->prepare("SELECT id FROM items ORDER BY id DESC LIMIT 1");
+    $stmt->execute();
+    $id = $stmt->fetch(PDO::FETCH_COLUMN);
+
+    if (!$id) {
+        http_response_code(404);
+        echo json_encode(["message" => "No items found"]);
+        return;
+    }
+
+    $stmt = $db->prepare("DELETE FROM items WHERE id = ?");
+    if ($stmt->execute([$id])) {
+        http_response_code(200);
+        echo json_encode(["message" => "Last item deleted"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["message" => "Error deleting last item"]);
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $startTime = microtime(true);
@@ -326,41 +410,14 @@ switch ($path) {
             echo json_encode($results);
         }
         break;
+    case '/item/update':
+        updateItem($db);
+        break;
     case '/item/delete':
-        if ($method === 'DELETE') {
-            authMiddleware();
-            if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-                http_response_code(400);
-                echo json_encode(["error" => "Invalid ID"]);
-                exit;
-            }
-            $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
-            if ($stmt->execute([$_GET['id']])) {
-                echo json_encode(["message" => "Item deleted"]);
-            } else {
-                http_response_code(500);
-                echo json_encode(["error" => "Error deleting item"]);
-            }
-        }
+        deleteItem($db);
         break;
     case '/item/last/delete':
-        if ($method === 'DELETE') {
-            authMiddleware();
-            $stmt = $pdo->query("SELECT id FROM items ORDER BY id DESC LIMIT 1");
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($result) {
-                $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
-                if ($stmt->execute([$result['id']])) {
-                    echo json_encode(["message" => "Last item deleted"]);
-                } else {
-                    http_response_code(500);
-                    echo json_encode(["error" => "Error deleting last item"]);
-                }
-            } else {
-                http_response_code(404);
-                echo json_encode(["error" => "No items found"]);
-            }
-        }
+        deleteLastItem($db);
         break;
     case preg_match('/\/loaderio-([a-zA-Z0-9]{32})\.txt/', $path, $matches) ? true : false:
         header('Content-Type: text/plain');
