@@ -326,6 +326,42 @@ switch ($path) {
             echo json_encode($results);
         }
         break;
+    case '/item/delete':
+        if ($method === 'DELETE') {
+            authMiddleware();
+            if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invalid ID"]);
+                exit;
+            }
+            $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
+            if ($stmt->execute([$_GET['id']])) {
+                echo json_encode(["message" => "Item deleted"]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Error deleting item"]);
+            }
+        }
+        break;
+    case '/item/last/delete':
+        if ($method === 'DELETE') {
+            authMiddleware();
+            $stmt = $pdo->query("SELECT id FROM items ORDER BY id DESC LIMIT 1");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result) {
+                $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
+                if ($stmt->execute([$result['id']])) {
+                    echo json_encode(["message" => "Last item deleted"]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode(["error" => "Error deleting last item"]);
+                }
+            } else {
+                http_response_code(404);
+                echo json_encode(["error" => "No items found"]);
+            }
+        }
+        break;
     case preg_match('/\/loaderio-([a-zA-Z0-9]{32})\.txt/', $path, $matches) ? true : false:
         header('Content-Type: text/plain');
         echo 'loaderio-' . $matches[1];
